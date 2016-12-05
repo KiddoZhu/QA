@@ -1,10 +1,12 @@
+import pickle
+
 from copy import deepcopy
 from collections import defaultdict
 from itertools import chain
 from acora import AcoraBuilder
 
 from data import Database
-from timer import Timer
+from timer import function_timer
 
 def _dd_int() :
 	return defaultdict(int)
@@ -26,56 +28,48 @@ class Graph(object) :
 		self.database = Database(filename)
 	
 	@property
+	@function_timer
 	def directed_graph(self) :
 		if not hasattr(self, "_directed_graph") :
-			timer = Timer()
 			print "getting directed graph ..."
 			
 			graph = defaultdict(_dd_int)
-			# in my VM, build speed is about 1.4w entity / s
+			# Zhu: in my VM, build speed is about 1.4w entity / s
 			ac = AcoraBuilder(*self.database.entities).build()
 			
 			# match consumes no time, compared to build
 			for text, attrib in self.database :
-				for entity, pos in longest_match(ac.finditer(text)) :
+				entities = zip(*longest_match(ac.finditer(text)))[0]
+				for entity in set(entities) :
 					if entity == attrib["title"] :
 						continue
 					graph[attrib["title"]][entity] += 1
-					
+			
+			delattr(self, "database")
 			self._directed_graph = graph
-			print "Time elapsed: %.2f s" % timer
+			
 		return self._directed_graph
 	
 	@property
 	def undirected_graph(self) :
 		if not hasattr(self, "_undirected_graph") :
-			print "getting undirected graph ..."
-			timer = Timer()
-			
+			directed = self.directed_graph
 			graph = defaultdict(_dd_int)
-			# in my VM, build speed is about 1.4w entity / s
-			ac = AcoraBuilder(*self.database.entities).build()
 			
-			# match consumes no time, compared to build
-			for text, attrib in self.database :
-				for entity, pos in longest_match(ac.finditer(text)) :
-					if entity == attrib["title"] :
-						continue
-					graph[attrib["title"]][entity] += 1
-					graph[entity][attrib["title"]] += 1
-						
+			for u in directed :
+				for v in directed[u] :
+					graph[u][v] += directed[u][v]
+					graph[v][u] += directed[u][v]
 			self._undirected_graph = graph
-			print "Time elapsed: %.2f s" % timer
+			
 		return self._undirected_graph
 	
 	def k_core(self, k) :
-		print "k_core(%d)" % k
 		graph = deepcopy(self.undirected_graph)
 		new_cores = graph.keys()
 		cores = None
 		
 		while cores != new_cores :
-			print len(new_cores)
 			cores = new_cores
 			new_cores = []
 			for core in cores :
@@ -89,6 +83,9 @@ class Graph(object) :
 		return cores
 	
 	def save(self, filename) :
+		if not hasattr(self, "_directed_graph") :
+			print "Graph is not invoked, ignore save()."
+			return
 		pickle.dump(self, open(filename, "w"))
 	
 	@staticmethod

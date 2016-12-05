@@ -66,6 +66,8 @@ class Database(list) :
 						fail += 1
 					
 				count += 1
+				if count > 1:
+					break
 				print "\rfiles: %d / %d" % (count, total),
 				sys.stdout.flush()
 		

@@ -10,3 +10,12 @@ class Timer(object) :
 		if not self.continuous :
 			self.start_time = time.time()
 		return result
+
+def function_timer(func) :
+	
+	def _function(*args, **kargs) :
+		time = Timer()
+		func(*args, **kargs)
+		print "%s(): %.2f s" % (func.__name__, time)
+
+	return _function
