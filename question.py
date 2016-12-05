@@ -1,3 +1,4 @@
+import jieba
 from nltk.parse.stanford import StanfordDependencyParser
 
 JAR_PATH = "stanford-parser/stanford-parser.jar"
