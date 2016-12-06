@@ -1,11 +1,10 @@
-import pickle
-
 from copy import deepcopy
 from collections import defaultdict
 from itertools import chain
 from acora import AcoraBuilder
 
 from data import Database
+from method import Method
 from timer import function_timer
 
 def _dd_int() :
@@ -18,15 +17,8 @@ def longest_match(matches) :
 	for pos, match_set in groupby(matches, itemgetter(1)) :
 		yield max(match_set)
 
-class Graph(object) :
+class Graph(Method) :
 
-	def __init__(self, database = None) :
-		if database :
-			self.database = database
-	
-	def load_data(self, filename) :
-		self.database = Database(filename)
-	
 	@property
 	@function_timer
 	def directed_graph(self) :
@@ -81,13 +73,3 @@ class Graph(object) :
 					new_cores.append(core)
 		
 		return cores
-	
-	def save(self, filename) :
-		if not hasattr(self, "_directed_graph") :
-			print "Graph is not invoked, ignore save()."
-			return
-		pickle.dump(self, open(filename, "w"))
-	
-	@staticmethod
-	def load(filename) :
-		return pickle.load(open(filename))

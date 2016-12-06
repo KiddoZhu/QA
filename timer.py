@@ -15,7 +15,8 @@ def function_timer(func) :
 	
 	def _function(*args, **kargs) :
 		time = Timer()
-		func(*args, **kargs)
+		result = func(*args, **kargs)
 		print "%s(): %.2f s" % (func.__name__, time)
+		return result
 
 	return _function
