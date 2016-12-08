@@ -1,4 +1,7 @@
-import pickle
+try :
+	import cPickle as pickle
+except :
+	import pickle
 
 class Method(object) :
 

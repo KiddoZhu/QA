@@ -3,7 +3,8 @@ import os
 import re
 import pickle
 import jieba
-import xml.etree.ElementTree as et
+from gensim.corpora import Dictionary
+from xml.etree import ElementTree as et
 
 
 class Database(list) :
@@ -66,12 +67,32 @@ class Database(list) :
 						fail += 1
 					
 				count += 1
-				if count > 1:
-					break
+				#if count >= 10 :
+				#	break
 				print "\rfiles: %d / %d" % (count, total),
 				sys.stdout.flush()
 		
 		print "... %d loaded, %d filtered, %d fails" % (success, filtered, fail)
+	
+	@property
+	def sentences(self) :
+		# return tokenized sentences
+		for text, attrib in self :
+			yield list(jieba.cut(text))
+	
+	@property
+	def dictionary(self) :
+		# return gensim Dictionary
+		if not hasattr(self, "_dictionary") :
+			self._dictionary = Dictionary(self.sentences, prune_at = None)
+		return self._dictionary
+	
+	@property
+	def corpus(self) :
+		# return sparse vectors for gensim models
+		if not hasattr(self, "_corpus") :
+			self._corpus = [self.dictionary.doc2bow(sentence) for sentence in self.sentences]
+		return self._corpus
 	
 	def save(self, filename) :
 		pickle.dump(self, open(filename, "w"))
