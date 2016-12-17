@@ -3,15 +3,16 @@ import os
 import re
 import pickle
 import jieba
+from langconv import Converter
 from gensim.corpora import Dictionary
 from xml.etree import ElementTree as et
-
 
 class Database(list) :
 
 	_re_split = re.compile("(?<=</doc>).*?(?=<doc)", flags = re.DOTALL)
 	_re_ignore = re.compile("<br>")
 	_xml_escape = [(" & ", " &amp; ")]
+	_converter = Converter("zh-hans")
 	
 	@staticmethod
 	def cond_length(length) :
@@ -54,6 +55,9 @@ class Database(list) :
 							e.text = e.text.decode()
 						if not isinstance(e.attrib["title"], unicode) :
 							e.attrib["title"] = e.attrib["title"].decode()
+						e.text = self._converter.convert(e.text)
+						for key in e.attrib :
+							e.attrib[key] = self._converter.convert(e.attrib[key])
 						data = (e.text, e.attrib)
 						for condition in conditions :
 							if not condition(data) :

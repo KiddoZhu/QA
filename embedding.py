@@ -1,7 +1,7 @@
 import jieba
 import pickle
 import numpy as np
-from gensim.models import Word2Vec as _Word2Vec, LdaMulticore as _LDA
+from gensim.models import Word2Vec as _Word2Vec, LdaModel as _LDA
 from sklearn.metrics.pairwise import cosine_similarity
 
 from method import Method
@@ -22,7 +22,7 @@ class Word2Vec(Method) :
 	def __getitem__(self, item) :
 		if isinstance(item, unicode) or isinstance(item, str) :
 			return self.word(item)
-		elif isinstance(item, list) :
+		elif hasattr(item, "__iter__") :
 			return self.sentence(item)
 		else :
 			raise ValueError("Item must be either word in unicode/str or sentence in list.")
@@ -57,7 +57,7 @@ class LDA(Method) :
 	def __getitem__(self, item) :
 		if isinstance(item, unicode) or isinstance(item, str) :
 			return self.word(item)
-		elif isinstance(item, list) :
+		elif hasattr(item, "__iter__") :
 			return self.sentence(item)
 		else :
 			raise ValueError("Item must be either word in unicode/str or sentence in list.")
