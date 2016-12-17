@@ -181,8 +181,8 @@ def doall(s):
 	# setattr(question, 'questionSentence', '马尔代夫的第一大支柱产业是什么？')
 	extractor = QuestionExtractor()
 	extractor(question)
-	# print 'ALL the Templete'
-	#my_print(question.answerTemp)
+	print 'ALL the Templete'
+	my_print(question.answerTemp)
 	#targetSentence = u'《华英字典》的作者是马礼逊'
 	#matchAnswerWords(question, targetSentence)
 
