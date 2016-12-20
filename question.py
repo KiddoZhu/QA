@@ -174,7 +174,7 @@ def matchAnswerWords(q, s):
 	# print tarSent
 
 
-def doall(s):
+def parseQuestion(s):
 	# s = u'马尔代夫的第一大支柱产业是什么？	旅游业'
 	question = Question()
 	question.setSentence(s)
@@ -185,6 +185,7 @@ def doall(s):
 	my_print(question.answerTemp)
 	#targetSentence = u'《华英字典》的作者是马礼逊'
 	#matchAnswerWords(question, targetSentence)
+	return question
 
 def posText():
 	textName = 'test.txt'
