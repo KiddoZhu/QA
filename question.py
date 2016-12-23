@@ -95,7 +95,8 @@ class Question(object) :
 		# find keyword matching
 		keyWordMatching = [u'多少', u'几', u'谁', u'什么', 
 							u'哪个', u'哪一', u'哪所', u'哪种',
-							u'哪里', u'第几', u'哪']
+							u'哪里', u'第几', u'哪', u'几大', u'哪一年',
+							u'几位', u'什么样']
 		isWords = [u'是', u'成为', u'变成', u'由']
 		whereWords = [u'哪里', u'在哪']
 		for word in keyWordMatching:
@@ -188,6 +189,22 @@ class Question(object) :
 					patternW = [1,1] + beforeW
 					self.addTemp(pattern, patternPos, patternW)
 
+		# if we did not find any words
+		if not hasattr(self, 'answerTempW'):
+			pattern = self.wordsToken + [u'<any>']
+			patternPos = self.posToken + [self.answerType]
+			patternW = []
+			for word in self.wordsToken:
+				if word in self.keyWordToken:
+					patternW.append(5)
+				else:
+					patternW.append(1)
+			patternW.append(1)
+			self.addTemp(pattern, patternPos, patternW)
+
+
+
+
 def getQuestionType(wordsToken):
 	numberToken = [u'第几', u'多少', u'几大']
 	whatToken = [u'什么', u'哪个', u'哪一', u'哪所', u'哪种']
@@ -258,18 +275,21 @@ def parseQuestion(s):
 	extractor = QuestionExtractor()
 	extractor(question)
 	print 'ALL the Templete'
+	my_print(question.questionSentence)
+	my_print(question.wordsToken)
 	my_print(question.answerTemp)
 	#targetSentence = u'《华英字典》的作者是马礼逊'
 	#matchAnswerWords(question, targetSentence)
 	return question
 
 def posText():
-	# textName = 'test.txt'
-	# f = codecs.open(textName, 'r', 'utf-8')
-	#while True:
-	#	line = f.readline()
-	#	if not line:
-	#		break
+	textName = 'test.txt'
+	f = codecs.open(textName, 'r', 'utf-8')
+	while True:
+		line = f.readline()
+		if not line:
+			break
+		parseQuestion(line)
 		# print line
 	sampleQuestions = [u'甲午战争后，清政府签订了哪个不平等条约',
 		u'马尔代夫的第一大支柱产业是什么？',
