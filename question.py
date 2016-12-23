@@ -10,6 +10,10 @@ import sys
 import logging
 from help_func import *
 import debugger
+
+W_KEYWORD = 10
+W_NORMAL = 2
+W_ANY = 50
 # reload(sys)
 # sys.setdefaultencoding('unicode')
 # JAR_PATH = "stanford-parser/stanford-parser.jar"
@@ -53,9 +57,9 @@ class Question(object) :
 				patternPos.append(self.answerType)
 			patternPos.append(self.posToken[i])
 			if self.wordsToken[i] in self.keyWordToken:
-				patternW.append(5)
+				patternW.append(W_KEYWORD)
 			else:
-				patternW.append(1)
+				patternW.append(W_NORMAL)
 
 		self.addTemp(pattern, patternPos, patternW)
 
@@ -68,12 +72,12 @@ class Question(object) :
 			pattern.append(self.wordsToken[i])
 			patternPos.append(self.posToken[i])
 			if self.wordsToken[i] in self.keyWordToken:
-				patternW.append(5)
+				patternW.append(W_KEYWORD)
 			else:
-				patternW.append(1)
+				patternW.append(W_NORMAL)
 		pattern.append(u'<any>')
 		patternPos.append(self.answerType)
-		patternW.append(1)
+		patternW.append(W_ANY)
 		self.addTemp(pattern, patternPos, patternW)
 		return True
 
@@ -111,23 +115,23 @@ class Question(object) :
 				beforeW = []
 				for j in range(i):
 					if self.wordsToken[j] in self.keyWordToken:
-						beforeW.append(5)
+						beforeW.append(W_KEYWORD)
 					else:
-						beforeW.append(1)
+						beforeW.append(W_NORMAL)
 				# <any> is what?
 				pattern = [u'<any>', w] + before
 				patternPos = [self.answerType, 'v'] + beforePos
-				patternW = [1,1] + beforeW
+				patternW = [W_ANY, W_NORMAL] + beforeW
 				self.addTemp(pattern, patternPos, patternW)
 				# <any> what?
 				pattern = [u'<any>'] + before
 				patternPos = [self.answerType] + beforePos
-				patternW = [1] + beforeW
+				patternW = [W_ANY] + beforeW
 				self.addTemp(pattern, patternPos, patternW)
 				# what is <any>?
 				pattern = before + [w, '<any>']
 				patternP = beforePos + ['v', self.answerType]
-				patternW = beforeW + [1,1]
+				patternW = beforeW + [W_ANY, W_NORMAL]
 				self.addTemp(pattern, patternPos, patternW)			
 				# ignore sentence before ','
 				if sentence.find(u'，') != -1:
@@ -141,23 +145,23 @@ class Question(object) :
 					before_is_w = []
 					for i in range(len(before_comma)):
 						if before_comma[i] in self.keyWordToken:
-							before_comma_w.append(5)
+							before_comma_w.append(W_KEYWORD)
 						else:
-							before_comma_w.append(1)
+							before_comma_w.append(W_NORMAL)
 					for i in range(len(before_is)):
 						if before_is[i] in self.keyWordToken:
-							before_is_w.append(5)
+							before_is_w.append(W_KEYWORD)
 						else:
-							before_is_w.append(1)				
+							before_is_w.append(W_NORMAL)				
 					
 					pattern = before_comma + before_is + [w, u'<any>']
 					patternPos = before_comma_pos + before_is_pos + ['v', self.answerType]
-					patternW = before_comma_w + before_is_w + [1,1]
+					patternW = before_comma_w + before_is_w + [W_NORMAL, W_ANY]
 					self.addTemp(pattern, patternPos, patternW)
 					
 					pattern = before_comma + [u'<any>', w]  + before_is
 					patternPos = before_comma_pos + [self.answerType, 'v'] + before_is_pos
-					patternW = before_comma_w + [1,1] + before_is_w
+					patternW = before_comma_w + [W_ANY, W_NORMAL] + before_is_w
 					self.addTemp(pattern, patternPos, patternW)				
 		
 		for w in whereWords:
@@ -171,22 +175,22 @@ class Question(object) :
 				afterW = []
 				for j in range(len(before)):
 					if before[j] in self.keyWordToken:
-						beforeW.append(5)
+						beforeW.append(W_KEYWORD)
 					else:
-						beforeW.append(1)
+						beforeW.append(W_NORMAL)
 				for j in range(len(after)):
 					if after[j] in self.keyWordToken:
-						afterW.append(5)
+						afterW.append(W_KEYWORD)
 					else:
-						afterW.append(1)
+						afterW.append(W_NORMAL)
 				if len(after) == 0:
 					pattern = [u'在', '<any>'] + before
 					patternPos = ['v', self.answerType] + beforePos
-					patternW = [1,1] + beforeW
+					patternW = [W_NORMAL, W_ANY] + beforeW
 					self.addTemp(pattern, patternPos, patternW)
 					pattern = [u'位于', '<any>'] + before
 					patternPos = ['v', self.answerType] + beforePos
-					patternW = [1,1] + beforeW
+					patternW = [W_NORMAL, W_ANY] + beforeW
 					self.addTemp(pattern, patternPos, patternW)
 
 		# if we did not find any words
@@ -196,10 +200,10 @@ class Question(object) :
 			patternW = []
 			for word in self.wordsToken:
 				if word in self.keyWordToken:
-					patternW.append(5)
+					patternW.append(W_KEYWORD)
 				else:
-					patternW.append(1)
-			patternW.append(1)
+					patternW.append(W_NORMAL)
+			patternW.append(W_ANY)
 			self.addTemp(pattern, patternPos, patternW)
 
 
