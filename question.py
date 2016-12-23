@@ -55,7 +55,8 @@ class Question(object) :
 		for i in range(len(self.wordsToken)):
 			if self.wordsToken[i] == keyWord:
 				patternPos.append(self.answerType)
-			patternPos.append(self.posToken[i])
+			else:
+				patternPos.append(self.posToken[i])
 			if self.wordsToken[i] in self.keyWordToken:
 				patternW.append(W_KEYWORD)
 			else:
@@ -82,14 +83,19 @@ class Question(object) :
 		return True
 
 	def addTemp(self, r, r_pos, r_w):
+		my_print(r)
+		my_print(r_pos)
+		my_print(r_w)
 		if not hasattr(self, 'answerTemp'):
 			setattr(self, 'answerTemp', [])
 		if not hasattr(self, 'answerTempPos'):
 			setattr(self, 'answerTempPos', [])
 		if not hasattr(self, 'answerTempW'):
 			setattr(self, 'answerTempW', [])
-		assert(len(r) == len(r_pos), 'Not equal length of pattern and patten pos')
-		assert(len(r_pos) == len(r_w), 'Not equal length of patternPos and pattern weight')
+		if not len(r) == len(r_pos):
+			raise  ValueError#('Not equal length of pattern and patten pos')
+		if not len(r_pos) == len(r_w):
+			raise ValueError #('Not equal length of patternPos and pattern weight')
 
 		self.answerTemp.append(r)
 		self.answerTempPos.append(r_pos)
@@ -122,6 +128,8 @@ class Question(object) :
 				pattern = [u'<any>', w] + before
 				patternPos = [self.answerType, 'v'] + beforePos
 				patternW = [W_ANY, W_NORMAL] + beforeW
+				# my_print(pattern)
+				# my_print(patternPos)
 				self.addTemp(pattern, patternPos, patternW)
 				# <any> what?
 				pattern = [u'<any>'] + before
@@ -130,7 +138,9 @@ class Question(object) :
 				self.addTemp(pattern, patternPos, patternW)
 				# what is <any>?
 				pattern = before + [w, '<any>']
-				patternP = beforePos + ['v', self.answerType]
+				# my_print(beforePos)
+				patternPos = beforePos + ['v', self.answerType]
+				# my_print(patternP)
 				patternW = beforeW + [W_ANY, W_NORMAL]
 				self.addTemp(pattern, patternPos, patternW)			
 				# ignore sentence before ','
@@ -253,7 +263,7 @@ class QuestionExtractor(object) :
 
 		# question.wordsToken = list(jieba.cut(qSentence))
 		question.wordsToken, question.posToken = getPosToken(qSentence)
-
+		assert len(question.wordsToken) == len(question.posToken)
 		# print question.posToken
 		# # my_print(question.posToken)
 		# print 'Length words Token = %d'%(len(question.wordsToken))
