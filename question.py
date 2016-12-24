@@ -70,7 +70,7 @@ class Question(object) :
 		# if len(splitS) == 1:
 		# 	print 'no ? char'
 		# my_print(splitS)
-		s = splitS[1]
+		s = splitS[0]
 		self.questionSentence = s
 	#Replace answer keyword
 	def addReKeyword(self, keyWord):
@@ -97,7 +97,7 @@ class Question(object) :
 			if r_pos[i] == 'm' and r[i] != u'<any>':
 				# print "Number pos"
 				r_w[i] = W_NUMBER
-			if r_pos[i].startswith('n') and len(r_pos[i]) > 1:
+			if r_pos[i].startswith('n') and len(r_pos[i]) > 1 and r[i] != u'<any>':
 				# print 'DETAILED Noun'
 				r_w[i] = W_DETAILNOUN
 		self.answerTemp.append(r)
@@ -163,7 +163,7 @@ class Question(object) :
 				# #my_print(beforePos)
 				patternPos = beforePos + ['v', self.answerType]
 				# #my_print(patternP)
-				patternW = beforeW + [W_ANY, W_NORMAL]
+				patternW = beforeW + [W_NORMAL, W_ANY]
 				self.addTemp(pattern, patternPos, patternW)
 				# ignore sentence before ','
 				if sentence.find(u'，') != -1:
@@ -262,7 +262,7 @@ def getQuestionType(sentence):
 			return 'Where', 'ns'
 	if sentence.endswith(u'年份是'):
 		# print 'End With '
-		my_print(sentence)
+		# my_print(sentence)
 		return 'Number', 'm'
 	if sentence.endswith(u'年是'):
 		return 'Number', 'm'
@@ -319,32 +319,33 @@ def parseQuestion(s):
 	return question
 
 def posText():
-	textName = 'questions.txt'
-	f = codecs.open(textName, 'r', 'utf-8')
-	while True:
-		line = f.readline()
-		if not line:
-			break
-		parseQuestion(line)
+	# textName = 'questions.txt'
+	# f = codecs.open(textName, 'r', 'utf-8')
+	# while True:
+	# 	line = f.readline()
+	# 	if not line:
+	# 		break
+	# 	parseQuestion(line)
 		# print line
-	# sampleQuestions = [
-	# 	u'甲午战争后，清政府签订了哪个不平等条约',
-	# 	u'马尔代夫的第一大支柱产业是什么？',
-	# 	u'《华英字典》的作者是？',
-	# 	u'甲午战争爆发的标志是？',
-	# 	u'甲午战争后，清政府签订不平等条约是什么',
-	# 	u'元谋人化石发现于中国的哪一省份？',
-	# 	u'人类合成的第一种抗菌药是？',
-	# 	u'1916年至1927年，北京大学的校长是？',
-	# 	u'《资治通鉴》的撰写一共耗时多少年？',
-	# 	u'《苏德互不侵犯条约》的签订地点是？',
-	# 	u'第一位获得菲尔兹奖的女性是？',
-	# 	u'目前市面上流通的主要人民币是第几套？',
-	# 	u'1858年，与清政府签订《天津条约》的国家是英法俄和那个国家',
-	# 	u'白果是哪种植物的果实',
-	# 	]
-	# for q in sampleQuestions:
-	# 	parseQuestion(q)
+	sampleQuestions = [
+		u'甲午战争后，清政府签订了哪个不平等条约',
+		u'马尔代夫的第一大支柱产业是什么？',
+		u'《华英字典》的作者是？',
+		u'甲午战争爆发的标志是？',
+		u'甲午战争后，清政府签订不平等条约是什么',
+		u'元谋人化石发现于中国的哪一省份？',
+		u'人类合成的第一种抗菌药是？',
+		u'1916年至1927年，北京大学的校长是？',
+		u'《资治通鉴》的撰写一共耗时多少年？',
+		u'《苏德互不侵犯条约》的签订地点是？',
+		u'第一位获得菲尔兹奖的女性是？',
+		u'目前市面上流通的主要人民币是第几套？',
+		u'1858年，与清政府签订《天津条约》的国家是英法俄和那个国家',
+		u'白果是哪种植物的果实',
+		u'北宋“三苏”中，苏洵与苏轼的亲戚关系是什么'
+		]
+	for q in sampleQuestions:
+		parseQuestion(q)
 
 def getJiebaPos():
 	s = '史上第一位获得菲尔兹奖的女性数学家MaryamMirzakhani'
