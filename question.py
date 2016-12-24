@@ -4,6 +4,8 @@ import jieba
 import jieba.posseg as pseg
 import jieba.analyse
 # from nltk.parse.stanford import StanfordDependencyParser
+
+#ＴＯＤＯ地点的问题
 import codecs
 import re
 import sys
@@ -11,9 +13,11 @@ import logging
 from help_func import *
 import debugger
 
-W_KEYWORD = 10
-W_NORMAL = 2
+W_KEYWORD = 5
+W_NORMAL = 1
 W_ANY = 50
+W_NUMBER = 15
+W_DETAILNOUN = 10
 
 '''
 # Three ways to determine answers:
@@ -89,6 +93,13 @@ class Question(object) :
 			setattr(self, 'answerTempW', [])
 		assert(len(r) == len(r_pos))
 		assert(len(r_pos) == len(r))
+		for i in range(len(r)):
+			if r_pos[i] == 'm' and r[i] != u'<any>':
+				# print "Number pos"
+				r_w[i] = W_NUMBER
+			if r_pos[i].startswith('n') and len(r_pos[i]) > 1:
+				# print 'DETAILED Noun'
+				r_w[i] = W_DETAILNOUN
 		self.answerTemp.append(r)
 		self.answerTempPos.append(r_pos)
 		self.answerTempW.append(r_w)
@@ -105,7 +116,8 @@ class Question(object) :
 							u'何时', u'何处', u'多重', u'多大', u'多长时间', u'何时', u'多长',
 							u'多远', u'多快', u'如何', u'何年', u'多高', u'多宽']
 		isWords = [u'是', u'成为', u'变成', u'由']
-		whereWords = [u'哪里', u'在哪']
+		whereWords = [u'哪里', u'在哪', u'地点是']
+		locationWords = [u'在', u'位于']
 		self.findKeyWord = False
 		self.matchWord = ''
 		for word in keyWordMatching:
@@ -117,7 +129,7 @@ class Question(object) :
 		# 	print 'Not Find Keyword'
 		# 	my_print(self.questionSentence)
 		# some representative words we want to match
-		
+
 		for w in isWords:
 			if w in self.wordsToken:
 				i = self.wordsToken.index(w)
@@ -184,30 +196,27 @@ class Question(object) :
 			if self.questionSentence.find(w) != -1:
 				i = self.questionSentence.find(w)
 				before = self.questionSentence[:i]
-				after = self.questionSentence[i+1:]
-				before, beforePos = getPosToken(before)
-				after, afterPos = getPosToken(after)
-				beforeW = []
-				afterW = []
-				for j in range(len(before)):
-					if before[j] in self.keyWordToken:
-						beforeW.append(W_KEYWORD)
-					else:
-						beforeW.append(W_NORMAL)
-				for j in range(len(after)):
-					if after[j] in self.keyWordToken:
-						afterW.append(W_KEYWORD)
-					else:
-						afterW.append(W_NORMAL)
-				if len(after) == 0:
-					pattern = [u'在', '<any>'] + before
+				after = self.questionSentence[i+len(w):]
+				before, beforePos, beforeW = getPattern(before, self.keyWordToken)
+				after, afterPos, afterW = getPattern(after, self.keyWordToken)
+				for w_l in locationWords:
+					pattern = [w_l, '<any>'] + before
 					patternPos = ['v', self.answerType] + beforePos
 					patternW = [W_NORMAL, W_ANY] + beforeW
 					self.addTemp(pattern, patternPos, patternW)
-					pattern = [u'位于', '<any>'] + before
-					patternPos = ['v', self.answerType] + beforePos
-					patternW = [W_NORMAL, W_ANY] + beforeW
+					pattern = before + [w_l, '<any>']
+					patternPos = beforePos +  ['v', self.answerType]
+					patternW = beforeW +  [W_NORMAL, W_ANY]
 					self.addTemp(pattern, patternPos, patternW)
+					if len(after) != 0:
+						pattern = [w_l, '<any>'] + before + after
+						patternPos = ['v', self.answerType] + beforePos + afterPos
+						patternW = [W_NORMAL, W_ANY] + beforeW + afterW
+						self.addTemp(pattern, patternPos, patternW)
+						pattern = before + after + [w_l, '<any>']
+						patternPos = beforePos + afterPos + ['v', self.answerType]
+						patternW = beforeW + afterW + [W_NORMAL, W_ANY]
+						self.addTemp(pattern, patternPos, patternW)
 
 		# if we did not find any words
 		if not hasattr(self, 'answerTempW'):
@@ -246,6 +255,12 @@ def getQuestionType(sentence):
 	for word in whereToken:
 		if sentence.find(word) != -1:
 			return 'Where', 'ns'
+	if sentence.endswith(u'年份是'):
+		print 'End With '
+		my_print(sentence)
+		return 'Number', 'm'
+	if sentence.endswith(u'年是'):
+		return 'Number', 'm'
 	# print 'Not find keyword token'
 	# my_print(sentence)
 	return 'Unknown', 'n'
@@ -290,7 +305,9 @@ def parseQuestion(s):
 	# print 'ALL the Templete'
 	#my_print(question.questionSentence)
 	#my_print(question.wordsToken)
-	#my_print(question.answerTemp)
+	# my_print(question.answerTemp)
+	# my_print(question.answerTempPos)
+	# my_print(question.answerTempW)
 	return question
 
 def posText():
@@ -310,12 +327,15 @@ def posText():
 	# 	u'元谋人化石发现于中国的哪一省份？',
 	# 	u'人类合成的第一种抗菌药是？',
 	# 	u'1916年至1927年，北京大学的校长是？',
+	# 	u'《资治通鉴》的撰写一共耗时多少年？'
 	# 	]
 	# for q in sampleQuestions:
 	# 	parseQuestion(q)
 
 def getJiebaPos():
-	s = '奥本海默建立于1949年10月１号'
+	s = '三百万字耗时19年'
+	my_print(zip(*pseg.cut(s)))
+	s = '现存约4580只苏门答腊虎'
 	my_print(zip(*pseg.cut(s)))
 
 if __name__ == '__main__':
