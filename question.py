@@ -10,7 +10,7 @@ import codecs
 import re
 import sys
 import logging
-#from help_func import *
+# from help_func import *
 import debugger
 
 W_KEYWORD = 5
@@ -117,7 +117,7 @@ class Question(object) :
 							u'多远', u'多快', u'如何', u'何年', u'多高', u'多宽']
 		isWords = [u'是', u'成为', u'变成', u'由']
 		whereWords = [u'哪里', u'在哪', u'地点是']
-		locationWords = [u'在', u'位于']
+		locationWords = [u'在', u'位于', u'地点是']
 		self.findKeyWord = False
 		self.matchWord = ''
 		for word in keyWordMatching:
@@ -153,6 +153,10 @@ class Question(object) :
 				pattern = [u'<any>'] + before
 				patternPos = [self.answerType] + beforePos
 				patternW = [W_ANY] + beforeW
+				self.addTemp(pattern, patternPos, patternW)
+				pattern = before + [u'<any>']
+				patternPos = beforePos + [self.answerType]
+				patternW = beforeW + [W_ANY]
 				self.addTemp(pattern, patternPos, patternW)
 				# what is <any>?
 				pattern = before + [w, '<any>']
@@ -219,20 +223,21 @@ class Question(object) :
 						self.addTemp(pattern, patternPos, patternW)
 
 		# if we did not find any words
-		if not hasattr(self, 'answerTempW'):
+		# if not hasattr(self, 'answerTempW'):
 			# print "Donnot find asnwer templater"
 			# my_print(self.questionSentence)
 			# my_print(self.wordsToken)
-			pattern = self.wordsToken + [u'<any>']
-			patternPos = self.posToken + [self.answerType]
-			patternW = []
-			for word in self.wordsToken:
-				if word in self.keyWordToken:
-					patternW.append(W_KEYWORD)
-				else:
-					patternW.append(W_NORMAL)
-			patternW.append(W_ANY)
-			self.addTemp(pattern, patternPos, patternW)
+		# In case we have direct answers
+		pattern = self.wordsToken + [u'<any>']
+		patternPos = self.posToken + [self.answerType]
+		patternW = []
+		for word in self.wordsToken:
+			if word in self.keyWordToken:
+				patternW.append(W_KEYWORD)
+			else:
+				patternW.append(W_NORMAL)
+		patternW.append(W_ANY)
+		self.addTemp(pattern, patternPos, patternW)
 
 def getQuestionType(sentence):
 	keyWordMatching = [	u'下一句', ]
@@ -256,11 +261,13 @@ def getQuestionType(sentence):
 		if sentence.find(word) != -1:
 			return 'Where', 'ns'
 	if sentence.endswith(u'年份是'):
-		print 'End With '
+		# print 'End With '
 		my_print(sentence)
 		return 'Number', 'm'
 	if sentence.endswith(u'年是'):
 		return 'Number', 'm'
+	if sentence.endswith(u'地点是'):
+		return 'Where', 'ns'
 	# print 'Not find keyword token'
 	# my_print(sentence)
 	return 'Unknown', 'n'
@@ -305,6 +312,7 @@ def parseQuestion(s):
 	# print 'ALL the Templete'
 	#my_print(question.questionSentence)
 	#my_print(question.wordsToken)
+	# my_print(question.questionSentence)
 	# my_print(question.answerTemp)
 	# my_print(question.answerTempPos)
 	# my_print(question.answerTempW)
@@ -319,7 +327,8 @@ def posText():
 			break
 		parseQuestion(line)
 		# print line
-	# sampleQuestions = [u'甲午战争后，清政府签订了哪个不平等条约',
+	# sampleQuestions = [
+	# 	u'甲午战争后，清政府签订了哪个不平等条约',
 	# 	u'马尔代夫的第一大支柱产业是什么？',
 	# 	u'《华英字典》的作者是？',
 	# 	u'甲午战争爆发的标志是？',
@@ -327,16 +336,21 @@ def posText():
 	# 	u'元谋人化石发现于中国的哪一省份？',
 	# 	u'人类合成的第一种抗菌药是？',
 	# 	u'1916年至1927年，北京大学的校长是？',
-	# 	u'《资治通鉴》的撰写一共耗时多少年？'
+	# 	u'《资治通鉴》的撰写一共耗时多少年？',
+	# 	u'《苏德互不侵犯条约》的签订地点是？',
+	# 	u'第一位获得菲尔兹奖的女性是？',
+	# 	u'目前市面上流通的主要人民币是第几套？',
+	# 	u'1858年，与清政府签订《天津条约》的国家是英法俄和那个国家',
+	# 	u'白果是哪种植物的果实',
 	# 	]
 	# for q in sampleQuestions:
 	# 	parseQuestion(q)
 
 def getJiebaPos():
-	s = '三百万字耗时19年'
-	my_print(zip(*pseg.cut(s)))
-	s = '现存约4580只苏门答腊虎'
-	my_print(zip(*pseg.cut(s)))
+	s = '史上第一位获得菲尔兹奖的女性数学家MaryamMirzakhani'
+	# my_print(zip(*pseg.cut(s)))
+	s = '2004年夏季奥运会是在那个城市举办'
+	# my_print(zip(*pseg.cut(s)))
 
 if __name__ == '__main__':
 	posText()
