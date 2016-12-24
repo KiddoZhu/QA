@@ -2,8 +2,8 @@
 
 import jieba
 import jieba.posseg as pseg
-import jieba.analyse 
-from nltk.parse.stanford import StanfordDependencyParser
+import jieba.analyse
+# from nltk.parse.stanford import StanfordDependencyParser
 import codecs
 import re
 import sys
@@ -14,10 +14,6 @@ import debugger
 W_KEYWORD = 10
 W_NORMAL = 2
 W_ANY = 50
-# reload(sys)
-# sys.setdefaultencoding('unicode')
-# JAR_PATH = "stanford-parser/stanford-parser.jar"
-# MODELS_PATH = "stanford-parser/stanford-parser-3.6.0-models.jar"
 
 '''
 # Three ways to determine answers:
@@ -25,94 +21,103 @@ W_ANY = 50
 	2. get question regularize equation and match words at the target sentence
 	3. use key word marching, suppose key words in the target sentence
 '''
+def getPattern(sentence, sentenceKeyWord):
+	pattern, patternPos = getPosToken(sentence)
+	patternW = []
+	for w in pattern:
+		if w in sentenceKeyWord:
+			patternW.append(W_KEYWORD)
+		else:
+			patternW.append(W_NORMAL)
+	return pattern, patternPos, patternW
+
+def replaceAnswerWord(sentence, keyWord, answerType, sentenceKeyWord):
+	if sentence.find(keyWord) == -1:
+		return False, [], [], []
+	patternW = []
+	i = sentence.find(keyWord)
+	beforeKeyWord = sentence[:i]
+	afterKeyWord = sentence[i+len(keyWord):]
+	before, beforePos = getPosToken(beforeKeyWord)
+	after, afterPos = getPosToken(afterKeyWord)
+	for w in before:
+		if w in sentenceKeyWord:
+			patternW.append(W_KEYWORD)
+		else:
+			patternW.append(W_NORMAL)
+	patternW.append(W_ANY)
+	for w in after:
+		if w in sentenceKeyWord:
+			patternW.append(W_KEYWORD)
+		else:
+			patternW.append(W_NORMAL)
+	return True, before + [u'<any>'] + after, beforePos + [answerType] + afterPos, patternW
 
 class Question(object) :
-	# Zhu: here you can add more attribute
-	# __slots__ = ["type", "keyword"]
 	pass
 	def __init__(self, **kargs) :
 		for k, v in kargs.items() :
 			setattr(self, k, v)
 		self.answerWordsList = []
-	
 	def setSentence(self, s):
 		assert(isinstance(s, unicode))
+		s = s.strip('\r\n')
 		splitS = re.split(u'？|\t', s)
-		if len(splitS) == 1:
-			print 'no ? char'
-		s = splitS[0]
+		# if len(splitS) == 1:
+		# 	print 'no ? char'
+		# my_print(splitS)
+		s = splitS[1]
 		self.questionSentence = s
-
 	#Replace answer keyword
 	def addReKeyword(self, keyWord):
-		if self.questionSentence.find(keyWord) == -1:
+		findWords, pattern, patternPos, patternW = replaceAnswerWord(self.questionSentence,
+		 						keyWord, self.answerType, self.keyWordToken)
+		if not findWords:
 			return False
-		if keyWord not in list(self.wordsToken):
-			return False
-		pattern = [w.replace(keyWord, u'<any>') for w in self.wordsToken]
-		patternPos = []
-		patternW = []
-		for i in range(len(self.wordsToken)):
-			if self.wordsToken[i] == keyWord:
-				patternPos.append(self.answerType)
-			else:
-				patternPos.append(self.posToken[i])
-			if self.wordsToken[i] in self.keyWordToken:
-				patternW.append(W_KEYWORD)
-			else:
-				patternW.append(W_NORMAL)
-
-		self.addTemp(pattern, patternPos, patternW)
-
-		pattern = []
-		patternPos = []
-		patternW = []
-		for i in range(len(self.wordsToken)):
-			if self.wordsToken[i] == keyWord:
-				break
-			pattern.append(self.wordsToken[i])
-			patternPos.append(self.posToken[i])
-			if self.wordsToken[i] in self.keyWordToken:
-				patternW.append(W_KEYWORD)
-			else:
-				patternW.append(W_NORMAL)
-		pattern.append(u'<any>')
-		patternPos.append(self.answerType)
-		patternW.append(W_ANY)
 		self.addTemp(pattern, patternPos, patternW)
 		return True
 
 	def addTemp(self, r, r_pos, r_w):
-		my_print(r)
-		my_print(r_pos)
-		my_print(r_w)
+		#my_print(r)
+		#my_print(r_pos)
+		#my_print(r_w)
 		if not hasattr(self, 'answerTemp'):
 			setattr(self, 'answerTemp', [])
 		if not hasattr(self, 'answerTempPos'):
 			setattr(self, 'answerTempPos', [])
 		if not hasattr(self, 'answerTempW'):
 			setattr(self, 'answerTempW', [])
-		if not len(r) == len(r_pos):
-			raise  ValueError#('Not equal length of pattern and patten pos')
-		if not len(r_pos) == len(r_w):
-			raise ValueError #('Not equal length of patternPos and pattern weight')
-
+		assert(len(r) == len(r_pos))
+		assert(len(r_pos) == len(r))
 		self.answerTemp.append(r)
 		self.answerTempPos.append(r_pos)
 		self.answerTempW.append(r_w)
+
 	def getAnswerTemp(self):
 		sentence = self.questionSentence
 		# find keyword matching
-		keyWordMatching = [u'多少', u'几', u'谁', u'什么', 
+		keyWordMatching = [u'多少', u'几', u'谁', u'什么',
 							u'哪个', u'哪一', u'哪所', u'哪种',
-							u'哪里', u'第几', u'哪', u'几大', u'哪一年',
-							u'几位', u'什么样']
+							u'哪里', u'哪一年', u'哪位',
+							u'什么样', u'哪条', u'哪年', u'哪天',
+							u'哪块大陆', u'哪些', u'哪位',
+							u'怎么', u'哪部', u'哪篇',
+							u'何时', u'何处', u'多重', u'多大', u'多长时间', u'何时', u'多长',
+							u'多远', u'多快', u'如何', u'何年', u'多高', u'多宽']
 		isWords = [u'是', u'成为', u'变成', u'由']
 		whereWords = [u'哪里', u'在哪']
+		self.findKeyWord = False
+		self.matchWord = ''
 		for word in keyWordMatching:
-			self.addReKeyword(word)
-		
+			if self.addReKeyword(word):
+				self.findKeyWord = True
+				self.matchWord = word
+
+		# if not keyWordFind:
+		# 	print 'Not Find Keyword'
+		# 	my_print(self.questionSentence)
 		# some representative words we want to match
+		
 		for w in isWords:
 			if w in self.wordsToken:
 				i = self.wordsToken.index(w)
@@ -125,11 +130,12 @@ class Question(object) :
 					else:
 						beforeW.append(W_NORMAL)
 				# <any> is what?
+
 				pattern = [u'<any>', w] + before
 				patternPos = [self.answerType, 'v'] + beforePos
 				patternW = [W_ANY, W_NORMAL] + beforeW
-				# my_print(pattern)
-				# my_print(patternPos)
+				# #my_print(pattern)
+				# #my_print(patternPos)
 				self.addTemp(pattern, patternPos, patternW)
 				# <any> what?
 				pattern = [u'<any>'] + before
@@ -138,16 +144,16 @@ class Question(object) :
 				self.addTemp(pattern, patternPos, patternW)
 				# what is <any>?
 				pattern = before + [w, '<any>']
-				# my_print(beforePos)
+				# #my_print(beforePos)
 				patternPos = beforePos + ['v', self.answerType]
-				# my_print(patternP)
+				# #my_print(patternP)
 				patternW = beforeW + [W_ANY, W_NORMAL]
-				self.addTemp(pattern, patternPos, patternW)			
+				self.addTemp(pattern, patternPos, patternW)
 				# ignore sentence before ','
 				if sentence.find(u'，') != -1:
 					i_comma = sentence.rfind(u'，')
 					before_comma_s = sentence[:i_comma]
-					print before_comma_s
+					# print before_comma_s
 					before_is_s = sentence[i_comma+1: sentence.rfind(w)]
 					before_comma, before_comma_pos = getPosToken(before_comma_s)
 					before_is, before_is_pos = getPosToken(before_is_s)
@@ -162,25 +168,25 @@ class Question(object) :
 						if before_is[i] in self.keyWordToken:
 							before_is_w.append(W_KEYWORD)
 						else:
-							before_is_w.append(W_NORMAL)				
-					
+							before_is_w.append(W_NORMAL)
+
 					pattern = before_comma + before_is + [w, u'<any>']
 					patternPos = before_comma_pos + before_is_pos + ['v', self.answerType]
 					patternW = before_comma_w + before_is_w + [W_NORMAL, W_ANY]
 					self.addTemp(pattern, patternPos, patternW)
-					
+
 					pattern = before_comma + [u'<any>', w]  + before_is
 					patternPos = before_comma_pos + [self.answerType, 'v'] + before_is_pos
 					patternW = before_comma_w + [W_ANY, W_NORMAL] + before_is_w
-					self.addTemp(pattern, patternPos, patternW)				
-		
+					self.addTemp(pattern, patternPos, patternW)
+
 		for w in whereWords:
-			if w in self.wordsToken:
-				i = self.wordsToken.index(w)
-				before = self.wordsToken[:i]
-				after = self.wordsToken[i+1:]
-				beforePos = self.posToken[:i]
-				afterPos = self.posToken[i+1:]
+			if self.questionSentence.find(w) != -1:
+				i = self.questionSentence.find(w)
+				before = self.questionSentence[:i]
+				after = self.questionSentence[i+1:]
+				before, beforePos = getPosToken(before)
+				after, afterPos = getPosToken(after)
 				beforeW = []
 				afterW = []
 				for j in range(len(before)):
@@ -205,6 +211,9 @@ class Question(object) :
 
 		# if we did not find any words
 		if not hasattr(self, 'answerTempW'):
+			# print "Donnot find asnwer templater"
+			# my_print(self.questionSentence)
+			# my_print(self.wordsToken)
 			pattern = self.wordsToken + [u'<any>']
 			patternPos = self.posToken + [self.answerType]
 			patternW = []
@@ -216,30 +225,30 @@ class Question(object) :
 			patternW.append(W_ANY)
 			self.addTemp(pattern, patternPos, patternW)
 
+def getQuestionType(sentence):
+	keyWordMatching = [	u'下一句', ]
 
+	numberToken = [u'第几', u'多少', u'几', u'多远', u'多快', u'多高', u'多宽', u'哪一年',
+	 			u'哪年', u'哪天', u'多大', u'多长时间', u'何年',  u'多重', u'何时',u'多长', ]
+	whatToken = [u'什么', u'哪个', u'哪部', u'哪篇', u'哪一', u'哪条', u'哪种']
+	whoToken = [u'谁', u'哪位', ]
+	whereToken = [u'哪里', u'哪所', u'何处', u'哪块大陆',]
 
-
-def getQuestionType(wordsToken):
-	numberToken = [u'第几', u'多少', u'几大']
-	whatToken = [u'什么', u'哪个', u'哪一', u'哪所', u'哪种']
-	whoToken = [u'谁' ]
-	whereToken = [u'哪里']
-	for word in wordsToken:
-		# print word
-		if word in whatToken:
-			print 'What Question'
-			return 'What','n'
-		if word in numberToken:
-			print 'Number Question'
+	for word in numberToken:
+		if sentence.find(word) != -1:
 			return 'Number', 'm'
-		if word in whoToken:
-			print 'Who Question'
+	for word in whatToken:
+		if sentence.find(word) != -1:
+			return 'What', 'n'
+	for word in whoToken:
+		if sentence.find(word) != -1:
 			return 'Who', 'nr'
-		if word in whereToken:
-			print 'where question'
+	for word in whereToken:
+		if sentence.find(word) != -1:
 			return 'Where', 'ns'
+	# print 'Not find keyword token'
+	# my_print(sentence)
 	return 'Unknown', 'n'
-
 
 def getPosToken(s):
 	wordPos = pseg.cut(s)
@@ -251,21 +260,14 @@ def getPosToken(s):
 	# print pos
 	return words, pos
 
-
 class QuestionExtractor(object) :
 
-	# parser = StanfordDependencyParser()	
-	
 	def __call__(self, question) :
 		# print(question.questionSentence)
 		qSentence = question.questionSentence
-		# assert(isinstance(qSentence, str))
-
 		# question.wordsToken = list(jieba.cut(qSentence))
 		question.wordsToken, question.posToken = getPosToken(qSentence)
 		assert len(question.wordsToken) == len(question.posToken)
-		# print question.posToken
-		# # my_print(question.posToken)
 		# print 'Length words Token = %d'%(len(question.wordsToken))
 		# print 'Length pos token = %d'%(len(question.posToken))
 		question.keyWordToken = list(jieba.analyse.extract_tags(qSentence, topK=5))
@@ -274,30 +276,25 @@ class QuestionExtractor(object) :
 		# print '/'.join(question.wordsToken)
 		# for word, flag in question.posToken:
 		# 	print('%s %s'%(word, flag))
-
-		question.questionType, question.answerType = getQuestionType(question.wordsToken)
+		question.questionType, question.answerType = getQuestionType(question.questionSentence)
 		question.getAnswerTemp()
 		# my_print(question.answerTemp)
 		# print question.answerRe
 
-
 def parseQuestion(s):
-	# s = u'马尔代夫的第一大支柱产业是什么？	旅游业'
 	question = Question()
 	question.setSentence(s)
-	# setattr(question, 'questionSentence', '马尔代夫的第一大支柱产业是什么？')
+
 	extractor = QuestionExtractor()
 	extractor(question)
-	print 'ALL the Templete'
-	my_print(question.questionSentence)
-	my_print(question.wordsToken)
-	my_print(question.answerTemp)
-	#targetSentence = u'《华英字典》的作者是马礼逊'
-	#matchAnswerWords(question, targetSentence)
+	# print 'ALL the Templete'
+	#my_print(question.questionSentence)
+	#my_print(question.wordsToken)
+	#my_print(question.answerTemp)
 	return question
 
 def posText():
-	textName = 'test.txt'
+	textName = 'questions.txt'
 	f = codecs.open(textName, 'r', 'utf-8')
 	while True:
 		line = f.readline()
@@ -305,17 +302,22 @@ def posText():
 			break
 		parseQuestion(line)
 		# print line
-	sampleQuestions = [u'甲午战争后，清政府签订了哪个不平等条约',
-		u'马尔代夫的第一大支柱产业是什么？',
-		u'《华英字典》的作者是？',
-		u'甲午战争爆发的标志是？',
-		u'甲午战争后，清政府签订不平等条约是什么',
-		u'元谋人化石发现于中国的哪一省份？',
-		u'人类合成的第一种抗菌药是？',
-		u'1916年至1927年，北京大学的校长是？',
-		]
-	for q in sampleQuestions:
-		parseQuestion(q)
+	# sampleQuestions = [u'甲午战争后，清政府签订了哪个不平等条约',
+	# 	u'马尔代夫的第一大支柱产业是什么？',
+	# 	u'《华英字典》的作者是？',
+	# 	u'甲午战争爆发的标志是？',
+	# 	u'甲午战争后，清政府签订不平等条约是什么',
+	# 	u'元谋人化石发现于中国的哪一省份？',
+	# 	u'人类合成的第一种抗菌药是？',
+	# 	u'1916年至1927年，北京大学的校长是？',
+	# 	]
+	# for q in sampleQuestions:
+	# 	parseQuestion(q)
+
+def getJiebaPos():
+	s = '奥本海默建立于1949年10月１号'
+	my_print(zip(*pseg.cut(s)))
 
 if __name__ == '__main__':
 	posText()
+	# getJiebaPos()
