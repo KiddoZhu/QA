@@ -10,7 +10,7 @@ import codecs
 import re
 import sys
 import logging
-from help_func import *
+#from help_func import *
 import debugger
 
 W_KEYWORD = 5
