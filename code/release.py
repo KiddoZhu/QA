@@ -6,7 +6,7 @@ from data import Database
 from search import Search
 from embedding import Word2Vec
 
-INPUT_FILE = "test4.txt"
+INPUT_FILE = "test.txt"
 OPEN_MODE = True
 USE_KNN = False
 
@@ -27,14 +27,12 @@ if __name__ == "__main__" :
 			queries.append(parts[0])
 	
 	if USE_KNN :
-		print "USE_KNN"
 		search = Search(database = db)
 		search.embedding = Word2Vec.load("dump/w2v-model-simplified.dump")
 	else :
-		print "not use"
 		search = Search(database = db)
 		
-	fout = codecs.open(INPUT_FILE + "-output-open-no-knn.txt", "w", "utf-8")
+	fout = codecs.open(INPUT_FILE + "-output.txt", "w", "utf-8")
 	for id, query in zip(ids, queries) :
 		results = search.answer(query, length = 2, open = OPEN_MODE)
 		if results :
