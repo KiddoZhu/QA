@@ -15,12 +15,12 @@ if __name__ == "__main__" :
 	import pickle
 	db = pickle.load(open("dump/database-simplified.dump"))
 	
-	fin = codecs.open("样例数据.txt", "r", "utf-8")
+	fin = codecs.open("sample.txt", "r", "utf-8")
 	lines = map(lambda l: l.strip(), fin.readlines())
 	fin.close()
 	queries = map(lambda l: l.split()[0], lines)
 	
-	fout = codecs.open("output.txt", "w", "utf-8")
+	fout = codecs.open("output-50.txt", "w", "utf-8")
 	search = Search(db)
 	for query in queries :
 		fout.write("%s\n" % query);

@@ -3,7 +3,12 @@ import re
 import json
 import jieba
 import numpy as np
+import pickle
+import warnings
 from multiprocessing import Pool
+
+from sklearn.neighbors import NearestNeighbors
+from sklearn.metrics.pairwise import cosine_distances
 
 from method import Method
 from question import parseQuestion
@@ -12,10 +17,11 @@ from timer import function_timer
 
 import debugger
 
-INF = 100000000
+INF = 1000000
 STOPWORDS = [u":", u",", u"\\.", u"，", u"。", u"？", u"！", u"\n"]
 RANK = 50
 IGNORE = set([u"的"])
+N_NEIGHBORS = 20
 
 def EditDistance(tl1, tl2, pos1 = None, pos2 = None, w1 = None, w2 = None) :
 	assert(hasattr(tl1, "__getitem__"))
@@ -45,6 +51,9 @@ def EditDistance(tl1, tl2, pos1 = None, pos2 = None, w1 = None, w2 = None) :
 				if j > 0 and tmp < dist[i][j] :
 					dist[i][j] = tmp
 					ans[i][j] = j-1
+				if j > 0 and dist[i][j-1] + w2[j-1] < dist[i][j]:
+					dist[i][j] = dist[i][j-1] + w2[j-1] * 2
+					ans[i][j] = ans[i][j-1]
 			else : # a normal token
 				if i > 0 and dist[i-1][j] + w1[i-1] < dist[i][j] :
 					dist[i][j] = dist[i-1][j] + w1[i-1] * 2
@@ -84,8 +93,29 @@ def entry_answer(question, sentences, length) :
 class Search(Method) :
 
 	re_split = re.compile("|".join(STOPWORDS))
-	re_empty = re.compile(r"[ \n]+")
+	re_empty = re.compile(r"[ \n]+|(?<!\w)\w(?!\w)")
 
+	@property
+	def embedding(self) :
+		if not hasattr(self, "_embedding") :
+			self._embedding = None
+		return self._embedding
+	
+	@embedding.setter
+	def embedding(self, value) :
+		self._embedding = value
+		print "Building knn..."
+		vectors = []
+		self.id2title = {}
+		for id, (text, attrib) in enumerate(self.database) :
+			self.id2title[id] = attrib["title"]
+			vectors.append(self.embedding[jieba.cut(text)])
+		self.knn = NearestNeighbors(n_neighbors = N_NEIGHBORS, metric = cosine_distances, n_jobs = 64)
+		with warnings.catch_warnings() :
+			warnings.filterwarnings("ignore", category = DeprecationWarning)
+			self.knn.fit(vectors)
+		pickle.dump(self.knn, open("dump/knn_%d_w2v.dump" % N_NEIGHBORS, "w"))
+	
 	@property
 	def title2text(self) :
 		if not hasattr(self, "_title2text") :
@@ -109,9 +139,13 @@ class Search(Method) :
 			question_str = question_str[:-1]
 		question = parseQuestion(question_str)
 		entries = self.extract(list(jieba.cut(question_str)))
+		if self.embedding :
+			_, ids = self.knn.kneighbors([self.embedding[jieba.cut(question_str)]])
+			ids = ids[0]
+			entries += [self.id2title[id] for id in ids]
 		print "entries:", json.dumps(entries, ensure_ascii = False)
 		processes = []
-		pool = Pool(processes = 4)
+		pool = Pool(processes = 16)
 		for entry in entries :
 			text = self.title2text[entry]
 			text = self.re_empty.sub("", text)
@@ -122,7 +156,7 @@ class Search(Method) :
 			text = search(question_str)
 			text = self.re_empty.sub("", text)
 			sentences = self.re_split.split(text)
-			f = lambda s : s.find(question_str) == -1 and s[-1] != u"？" and s[-1] != u"?"
+			f = lambda s : not s.startswith(u"更多关于") and not s.endswith("?") and not s.endswith(u"？")
 			sentences = filter(f, sentences)
 			for l in range(1, length + 1) :
 				processes.append(pool.apply_async(entry_answer, (question, sentences, l)))
@@ -145,10 +179,10 @@ if __name__ == "__main__" :
 		# result = (score, sentence, answer)
 		fout.write("%d\t%s\t%s\n" % (score, answer, sentence))
 	'''
-	q_str = u"《资治通鉴》的撰写一共耗时多少年？"
+	q_str = u"北宋“三苏”中，苏洵与苏轼的亲戚关系是什么"
 	question = parseQuestion(q_str)
-	sentence = u"《资治通鉴》是编年体以时间为"
-	for pattern, w1, pos1 in zip(question.answerTemp, question.answerTempW, question.answerTempPos) :
+	sentence = u"北宋“三苏”中苏洵与苏轼的亲戚关系是什么?父子91"
+	for pattern, w1, pos1 in zip(question.answerTemp, question.answerTempW, question.answerTempPos)[3:4] :
 		tokenlist, pos2 = zip(*jieba.posseg.cut(sentence))
 		print json.dumps(zip(pattern, pos1, w1), ensure_ascii=False)
 		print json.dumps(zip(tokenlist, pos2), ensure_ascii=False)
